@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+
+  mongo:
+    image: mongo:7
+    container_name: bakimnerde-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - bakimnerde-net
+
+  api:
+    build: ./bakimnerde-rest-api
+    container_name: bakimnerde-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - API_HOST=0.0.0.0
+      - API_PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DATABASE=bakimnerde
+      - DB_SEED_PASSWORD=Bakimnerde!2026
+      - AUTH_TOKEN_SECRET=bakimnerde-docker-dev-secret-key-en-az-32-karakter
+      - CORS_ORIGIN=http://localhost:4173,http://localhost:4175,http://127.0.0.1:4173,http://127.0.0.1:4175
+    depends_on:
+      - mongo
+    networks:
+      - bakimnerde-net
+
+  panel:
+    build: ./bakimnerde-admin-panel
+    container_name: bakimnerde-panel
+    restart: unless-stopped
+    ports:
+      - "4173:4173"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+      - VITE_API_BASE_URL=http://localhost:3000
+      - VITE_API_VERSION=1
+    depends_on:
+      - api
+    networks:
+      - bakimnerde-net
+
+  pwa:
+    build: ./bakimnerde-pwa
+    container_name: bakimnerde-pwa
+    restart: unless-stopped
+    ports:
+      - "4175:4175"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - api
+    networks:
+      - bakimnerde-net
+
+volumes:
+  mongo-data:
+
+networks:
+  bakimnerde-net:
+    driver: bridge
